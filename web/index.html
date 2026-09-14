@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alem Notes — поиск по конспектам</title>
+<style>
+:root{color-scheme:light;font:16px/1.6 system-ui,sans-serif;color:#172c29;background:#f4f6ef}*{box-sizing:border-box}body{margin:0}main{max-width:900px;margin:auto;padding:55px 24px}header{display:flex;justify-content:space-between;border-bottom:1px solid #cdd7cb;padding-bottom:18px;gap:18px}.brand{font-weight:800;letter-spacing:.03em}small,.muted{color:#566b63}.tag{background:#dcedcf;border-radius:30px;padding:4px 14px;font-size:13px}h1{font-size:clamp(36px,7vw,60px);line-height:1.13;letter-spacing:-.04em;max-width:700px;margin:60px 0 22px}p{max-width:650px}form{display:flex;gap:10px;margin:30px 0 16px}input{min-width:0;flex:1;border:1px solid #afbeb1;border-radius:12px;padding:16px;font:inherit;background:white}button{border:0;border-radius:12px;background:#1c5344;color:white;padding:12px 23px;font:inherit;cursor:pointer}input:focus-visible,button:focus-visible{outline:3px solid #93ae49;outline-offset:3px}.examples{display:flex;gap:8px;flex-wrap:wrap}.examples button{background:#e5ebdf;color:#304738;padding:6px 12px;font-size:13px}#status{margin:30px 0 14px;min-height:26px}article{padding:23px;background:white;border:1px solid #d7dfd3;border-radius:14px;margin:12px 0;overflow-wrap:anywhere}article h2{font-size:15px;margin:0;color:#286347}article p{margin-bottom:0;white-space:pre-wrap}.score{float:right;font-size:12px;color:#5d6b61}footer{margin-top:42px;font-size:13px;color:#657268}@media(max-width:480px){form{flex-direction:column}.tag{display:none}main{padding-top:25px}}
+</style>
+<main>
+<header><span class="brand">ALEM / NOTES</span><span class="tag">Локально · без API-ключей</span></header>
+<h1>Найди мысль.<br>Вернись к источнику.</h1>
+<p class="muted">Поиск по Markdown и текстовым конспектам на русском, казахском и английском. Каждый результат — фрагмент файла с номером строки.</p>
+<form id="search"><input id="query" aria-label="Поисковый запрос" placeholder="Например, как работает retrieval" maxlength="1000" required><button>Найти</button></form>
+<div class="examples"><button type="button" data-query="retrieval">retrieval</button><button type="button" data-query="деректер">деректер</button><button type="button" data-query="валидация">валидация</button></div>
+<p id="status" role="status" aria-live="polite">Введи слова из конспекта, чтобы начать поиск.</p><section id="results" aria-label="Результаты поиска"></section>
+<footer>TF-IDF + cosine similarity. Это поиск по словам, без генерации ответов.<br>Файлы индексируются при запуске сервера. Для обновления перезапусти его.</footer>
+</main>
+<script>
+const form=document.querySelector('#search'),query=document.querySelector('#query'),status=document.querySelector('#status'),results=document.querySelector('#results');
+let latest=0;
+form.addEventListener('submit',async event=>{event.preventDefault();const request=++latest;status.textContent='Ищем в конспектах…';results.replaceChildren();try{const response=await fetch('/api/search?q='+encodeURIComponent(query.value));const data=await response.json();if(request!==latest)return;if(!response.ok)throw new Error(data.error||'Ошибка поиска');status.textContent=data.hits.length?`Найдено: ${data.hits.length} · Фрагментов в индексе: ${data.passages}`:'Совпадений нет. Попробуй другие слова из конспекта.';for(const hit of data.hits){const card=document.createElement('article'),score=document.createElement('span'),title=document.createElement('h2'),body=document.createElement('p');score.className='score';score.textContent='score '+hit.score.toFixed(3);title.textContent=hit.source+' · строка '+hit.line;body.textContent=hit.text;card.append(score,title,body);results.append(card)}}catch(error){if(request===latest)status.textContent='Не удалось выполнить поиск: '+error.message}});
+document.querySelectorAll('[data-query]').forEach(button=>button.addEventListener('click',()=>{query.value=button.dataset.query;form.requestSubmit()}));
+</script>
+</html>
